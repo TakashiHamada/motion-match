@@ -1,0 +1,15 @@
+{
+  "name": "motion-match",
+  "version": "1.0.0",
+  "description": "モーションリファレンスの782項目を使う、スマートフォン向けの組み合わせクイズです。3つの動きと名前をタップで対応させます。1・5・10問のセット、カテゴリー指定、苦手復習、途中保存、図鑑、学習記録、オフラインキャッシュを備えています。少数のカテゴリーでは残りの項目数に応じて問題数と組み合わせ数を減らします。",
+  "scripts": {
+    "test": "node scripts/check.cjs"
+  },
+  "keywords": [],
+  "author": "",
+  "type": "commonjs",
+  "devDependencies": {
+    "linkedom": "^0.18.13"
+  },
+  "private": true
+}
