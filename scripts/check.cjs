@@ -133,3 +133,28 @@ for (const file of scripts) assert(assets.includes('./'+file),`オフライン�
 for (const match of html.matchAll(/<link[^>]*href="([^"]+)"/g)) assert(assets.includes('./'+match[1]),`オフライン対象外: ${match[1]}`);
 for (const file of ['sw.js', ...scripts]) new vm.Script(fs.readFileSync(path.join(root,'dist',file),'utf8'),{filename:file});
 console.log(`オフライン資産${assets.length}件の存在・全スクリプトの構文を確認。`);
+
+// PagesのプロジェクトURL直下で、すべての相対パスが公開ファイルへ解決する。
+const pagesHtml = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const pagesUrl = new URL('https://takashihamada.github.io/motion-match/');
+const pagesWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
+const pagesAssets = JSON.parse(pagesWorker.match(/const ASSETS = (\[[\s\S]*?\]);/)[1]);
+const cachedUrls = new Set(pagesAssets.map(asset => new URL(asset, pagesUrl).href));
+assert(pagesHtml.includes('id="app"') && !pagesHtml.includes('http-equiv="refresh"'), 'ルートにクイズの入口が必要');
+for (const match of pagesHtml.matchAll(/(?:src|href)="([^"#]+)"/g)) {
+  if (/^https?:/.test(match[1])) continue;
+  const url = new URL(match[1], pagesUrl);
+  assert.equal(url.origin, pagesUrl.origin);
+  assert(url.pathname.startsWith(pagesUrl.pathname), `公開パスの外: ${url}`);
+  const file = url.pathname.slice(pagesUrl.pathname.length);
+  assert(fs.existsSync(path.join(root, file)), `公開ファイルなし: ${file}`);
+  assert(cachedUrls.has(url.href), `公開時のオフライン対象外: ${file}`);
+}
+for (const asset of pagesAssets) if (asset !== './') assert(fs.existsSync(path.join(root, asset)), `Pagesキャッシュ資産なし: ${asset}`);
+const pagesManifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.webmanifest'), 'utf8'));
+assert.equal(new URL(pagesManifest.start_url, pagesUrl).href, pagesUrl.href);
+assert.equal(new URL(pagesManifest.scope, pagesUrl).href, pagesUrl.href);
+assert(fs.existsSync(path.join(root, pagesManifest.icons[0].src)));
+assert(fs.existsSync(path.join(root, '.nojekyll')));
+new vm.Script(pagesWorker, { filename: 'sw.js' });
+console.log('Pagesルートの入口・全依存パス・オフライン対象・ホーム画面起動URLを確認。');
